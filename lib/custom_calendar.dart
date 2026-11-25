@@ -28,8 +28,9 @@ class CustomCalendar extends StatefulWidget {
   /// The primary color to be used in the calendar's color scheme
   final Color primaryColor;
 
-  /// A function to be called when the selected date range changes
-  final Function(DateTime, DateTime)? startEndDateChange;
+  /// A function to be called when the selected date range changes.
+  /// The end date is null while only the start date is selected.
+  final void Function(DateTime start, DateTime? end)? startEndDateChange;
 
   /// Locale for the calendar
   final Locale? locale;
@@ -62,10 +63,10 @@ class CustomCalendarState extends State<CustomCalendar> {
   void initState() {
     setListOfDate(currentMonthDate);
     if (widget.initialStartDate != null) {
-      startDate = widget.initialStartDate;
+      startDate = _dayOf(widget.initialStartDate!);
     }
     if (widget.initialEndDate != null) {
-      endDate = widget.initialEndDate;
+      endDate = _dayOf(widget.initialEndDate!);
     }
     super.initState();
   }
@@ -392,89 +393,42 @@ class CustomCalendarState extends State<CustomCalendar> {
     return noList;
   }
 
+  static DateTime _dayOf(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  static bool _isSameDay(DateTime? a, DateTime b) =>
+      a != null && a.year == b.year && a.month == b.month && a.day == b.day;
+
   bool getIsInRange(DateTime date) {
-    if (startDate != null && endDate != null) {
-      if (date.isAfter(startDate!) && date.isBefore(endDate!)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
+    if (startDate == null || endDate == null) {
       return false;
     }
+    final DateTime day = _dayOf(date);
+    return day.isAfter(startDate!) && day.isBefore(endDate!);
   }
 
-  bool getIsItStartAndEndDate(DateTime date) {
-    if (startDate != null &&
-        startDate!.day == date.day &&
-        startDate!.month == date.month &&
-        startDate!.year == date.year) {
-      return true;
-    } else if (endDate != null &&
-        endDate!.day == date.day &&
-        endDate!.month == date.month &&
-        endDate!.year == date.year) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+  bool getIsItStartAndEndDate(DateTime date) =>
+      _isSameDay(startDate, date) || _isSameDay(endDate, date);
 
-  bool isStartDateRadius(DateTime date) {
-    if (startDate != null &&
-        startDate!.day == date.day &&
-        startDate!.month == date.month) {
-      return true;
-    } else if (date.weekday == 1) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+  bool isStartDateRadius(DateTime date) =>
+      _isSameDay(startDate, date) || date.weekday == DateTime.monday;
 
-  bool isEndDateRadius(DateTime date) {
-    if (endDate != null &&
-        endDate!.day == date.day &&
-        endDate!.month == date.month) {
-      return true;
-    } else if (date.weekday == 7) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+  bool isEndDateRadius(DateTime date) =>
+      _isSameDay(endDate, date) || date.weekday == DateTime.sunday;
 
   void onDateClick(DateTime date) {
-    if (startDate == null) {
-      startDate = date;
-    } else if (startDate != date && endDate == null) {
-      endDate = date;
-    } else if (startDate!.day == date.day && startDate!.month == date.month) {
-      startDate = null;
-    } else if (endDate!.day == date.day && endDate!.month == date.month) {
-      endDate = null;
-    }
-    if (startDate == null && endDate != null) {
-      startDate = endDate;
-      endDate = null;
-    }
-    if (startDate != null && endDate != null) {
-      if (!endDate!.isAfter(startDate!)) {
-        final DateTime d = startDate!;
-        startDate = endDate;
-        endDate = d;
-      }
-      if (date.isBefore(startDate!)) {
-        startDate = date;
-      }
-      if (date.isAfter(endDate!)) {
-        endDate = date;
-      }
-    }
+    final DateTime day = _dayOf(date);
     setState(() {
-      try {
-        widget.startEndDateChange!(startDate!, endDate!);
-      } catch (_) {}
+      if (startDate == null || endDate != null) {
+        startDate = day;
+        endDate = null;
+      } else if (day.isBefore(startDate!)) {
+        endDate = startDate;
+        startDate = day;
+      } else {
+        endDate = day;
+      }
     });
+    widget.startEndDateChange?.call(startDate!, endDate);
   }
 }

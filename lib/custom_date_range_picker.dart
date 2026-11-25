@@ -232,7 +232,7 @@ class CustomDateRangePickerState extends State<CustomDateRangePicker>
                         initialStartDate: widget.initialStartDate,
                         primaryColor: widget.primaryColor,
                         startEndDateChange:
-                            (DateTime startDateData, DateTime endDateData) {
+                            (DateTime startDateData, DateTime? endDateData) {
                           setState(() {
                             startDate = startDateData;
                             endDate = endDateData;
@@ -324,12 +324,14 @@ class CustomDateRangePickerState extends State<CustomDateRangePicker>
                                           ),
                                         ),
                                       ),
-                                  onPressed: () {
-                                    try {
-                                      widget.onApplyClick(startDate!, endDate!);
-                                      Navigator.pop(context);
-                                    } catch (_) {}
-                                  },
+                                  onPressed:
+                                      startDate == null || endDate == null
+                                          ? null
+                                          : () {
+                                              widget.onApplyClick(
+                                                  startDate!, endDate!);
+                                              Navigator.pop(context);
+                                            },
                                   child: Center(
                                     child: Text(widget.applyButtonText),
                                   ),
